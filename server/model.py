@@ -3,6 +3,8 @@ import torch.nn.functional as F
 import torch
 
 
+# use pytorch code from https://nextjournal.com/gkoehler/pytorch-mnist
+
 log_interval = 10
 
 class Net(nn.Module):

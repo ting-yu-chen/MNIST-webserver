@@ -9,9 +9,13 @@ from PIL import Image
 import io
 
 from pymongo import MongoClient
-client = MongoClient(port=27017)
+try:
+    client = MongoClient(username='admin', password='1234', host='mongodb', port=27017)
+    db = client.database
+    predictions = db.predictions
 
-# use pytorch code from https://nextjournal.com/gkoehler/pytorch-mnist
+except Exception as e:
+    print("database connection error ", e)
 
 
 random_seed = 1
@@ -59,4 +63,20 @@ async def create_upload_file(file: UploadFile= File(...)):
     img = await file.read()
     pil_img = Image.open(io.BytesIO(img))
     pred = await predict(pil_img)
-    return {"filename": file.filename, "prediction":pred}
+    basename = os.path.basename(file.filename)
+    try:
+        predictions.insert_one(
+            {"filename": basename, 
+            "img": img, 
+            "prediction":pred}
+        )
+    except Exception as e :
+        print("INSERT ERROR!!!!", e)
+    return {"filename": basename, "prediction":pred}
+
+@app.get("/images/{filename}")
+def read_root(filename:str):
+    entry = predictions.find_one({"filename": filename})
+    if not entry:
+        return {"message": "NO prediction found"}
+    return {"filename": filename, "prediction": entry['prediction']}
