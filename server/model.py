@@ -1,7 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-
+from torchvision import datasets, transforms as T
+import torch.optim as optim
+import os 
 
 # use pytorch code from https://nextjournal.com/gkoehler/pytorch-mnist
 
@@ -57,3 +59,45 @@ def test(network, dataloader):
         print('\nTest set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(dataloader.dataset),
             100. * correct / len(dataloader.dataset)))
+
+
+random_seed = 1
+root = "./"
+learning_rate = 0.01
+momentum = 0.5
+n_epochs = 3
+batch_size_train = 64
+batch_size_test = 1000
+
+torch.backends.cudnn.enabled = False
+torch.manual_seed(random_seed)
+
+transform = T.Compose([T.ToTensor(), T.Normalize(
+    (0.1307,), (0.3081,))])
+
+def getModel():
+    network = Net()
+    if not os.path.exists('model.pth'):
+        train_loader = torch.utils.data.DataLoader(datasets.MNIST(
+            root, train=True, download=True, transform=transform), batch_size=batch_size_train, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(datasets.MNIST(
+            root, train=False, download=True, transform=transform), batch_size=batch_size_test, shuffle=True)
+
+        optimizer = optim.SGD(network.parameters(), lr=learning_rate,
+                        momentum=momentum)
+
+        for epoch in range(1, n_epochs + 1):
+            train(network, optimizer,train_loader, epoch)
+        
+        test(network, test_loader)
+        torch.save(network.state_dict(), 'model.pth')
+
+    network.load_state_dict(torch.load('model.pth'))
+    return network
+
+def predict(pil_img):
+    network = getModel() 
+    img_tensor = torch.unsqueeze(transform(pil_img), 0)
+    output = network(img_tensor)
+    _, pred = output.data.max(1, keepdim=True)
+    return pred.item()
