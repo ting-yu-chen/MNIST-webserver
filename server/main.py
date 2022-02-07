@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import model as model
 from PIL import Image
 import os.path
-
 import io
 from pymongo.errors import PyMongoError
 from pymongo import MongoClient
@@ -24,20 +23,7 @@ except PyMongoError as e:
 
 app = FastAPI()
 
-# for making fetch from local react possible 
-origins = [
-    "http://localhost",
-    "http://localhost:3000",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# POST endpoint fpr uploading image for mnist prediction
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile= File(...)):
     img = await file.read()
@@ -52,6 +38,7 @@ async def create_upload_file(file: UploadFile= File(...)):
     )
     return {"filename": basename, "prediction":pred}
 
+# GET endpoint fpr retrieve previous predictions based on filename 
 @app.get("/prediction/{filename}")
 def read_root(filename:str):
     entry = predictions.find_one({"filename": filename})
@@ -59,6 +46,7 @@ def read_root(filename:str):
         return {"message": "NO prediction found"}
     return {"filename": filename, "prediction": entry['prediction']}
 
+# GET endpoint fpr retrieve all previous predictions
 @app.get("/all")
 def read_root():
     cursor = predictions.find()
@@ -66,3 +54,18 @@ def read_root():
     for entry in cursor:
         entries.append({"filename": entry['filename'], "prediction": entry['prediction']})
     return entries 
+
+
+# for making fetch from local react possible 
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

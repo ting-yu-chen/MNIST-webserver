@@ -8,6 +8,19 @@ import os
 # use pytorch code from https://nextjournal.com/gkoehler/pytorch-mnist
 
 log_interval = 10
+random_seed = 1
+root = "./"
+learning_rate = 0.01
+momentum = 0.5
+n_epochs = 3
+batch_size_train = 64
+batch_size_test = 1000
+
+torch.backends.cudnn.enabled = False
+torch.manual_seed(random_seed)
+
+transform = T.Compose([T.ToTensor(), T.Normalize(
+    (0.1307,), (0.3081,))])
 
 class Net(nn.Module):
     def __init__(self):
@@ -60,21 +73,7 @@ def test(network, dataloader):
             test_loss, correct, len(dataloader.dataset),
             100. * correct / len(dataloader.dataset)))
 
-
-random_seed = 1
-root = "./"
-learning_rate = 0.01
-momentum = 0.5
-n_epochs = 3
-batch_size_train = 64
-batch_size_test = 1000
-
-torch.backends.cudnn.enabled = False
-torch.manual_seed(random_seed)
-
-transform = T.Compose([T.ToTensor(), T.Normalize(
-    (0.1307,), (0.3081,))])
-
+# load pretrained model or train the model 
 def getModel():
     network = Net()
     if not os.path.exists('model.pth'):
@@ -96,7 +95,7 @@ def getModel():
     return network
 
 def predict(pil_img):
-    network = getModel() 
+    network = getModel()  
     img_tensor = torch.unsqueeze(transform(pil_img), 0)
     output = network(img_tensor)
     _, pred = output.data.max(1, keepdim=True)
